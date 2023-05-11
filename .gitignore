@@ -160,3 +160,4 @@ cython_debug/
 .idea/
 .fleet/
 data
+docu/

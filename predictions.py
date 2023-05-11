@@ -2,15 +2,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xgboost as xgb
 from sklearn.decomposition import PCA
+from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.linear_model import LinearRegression
 from statsmodels.tsa.stattools import adfuller
 
 
 def plot_predictions(x_val, y_val, y_pred):
-
     samples = list(range(0, len(x_val)))
     plt.figure(figsize=(10, 6))
     plt.plot(samples, y_val, label='Expected', alpha=0.5)
@@ -55,8 +54,8 @@ def xgb_regressor(train_df, show_ft_ip=False, pca=False):
 
         feature_names = ['PC{}_{}'.format(i + 1, most_names[i]) for i in range(n_pcs)]
 
-    model = xgb.XGBRegressor()
-    model.fit(x_train, y_train)
+    model = xgb.XGBRegressor(eval_metric='rmse', early_stopping_rounds=10)
+    model = model.fit(x_train, y_train, eval_set=[(x_val, y_val)])
 
     if show_ft_ip:
         model.get_booster().feature_names = feature_names
