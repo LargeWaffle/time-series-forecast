@@ -2,10 +2,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xgboost as xgb
 from sklearn.decomposition import PCA
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.linear_model import LinearRegression, ElasticNet, SGDRegressor
+from lightgbm import LGBMRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, PredictionErrorDisplay
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
+from sklearn.neural_network import MLPRegressor
+from sklearn.pipeline import make_pipeline
+
 from statsmodels.tsa.stattools import adfuller
 
 
@@ -71,6 +76,7 @@ def xgb_regressor(train_df, show_ft_ip=False, pca=False):
 
     print('MAE: {:.2f}'.format(mean_absolute_error(y_val, y_pred)))
     print('MSE: {:.2f}'.format(mean_squared_error(y_val, y_pred)))
+    print('R2: {:.2f}'.format(r2_score(y_val, y_pred)))
 
     plot_predictions(x_val, y_val, y_pred)
 
