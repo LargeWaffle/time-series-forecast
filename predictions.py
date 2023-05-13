@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import xgboost as xgb
 from sklearn.decomposition import PCA
-from sklearn.linear_model import LinearRegression, ElasticNet, SGDRegressor
+from sklearn.linear_model import LinearRegression, ElasticNet
 from lightgbm import LGBMRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, PredictionErrorDisplay
@@ -161,6 +161,29 @@ def lgbm(train_df, show_ft_ip=False, pca=False):
         show_feat_imp(model.feature_importances_, feature_names)
 
 
+def rf(train_df, show_ft_ip=False, pca=False):
+    x = train_df.drop(['id', 'store_nbr', 'sales', 'dcoilwtico'], axis=1)
+    y = train_df['sales']
+
+    feature_names = list(x.columns)
+
+    x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.2, random_state=42)
+
+    scaler = StandardScaler()
+    x_train = scaler.fit_transform(x_train)
+    x_val = scaler.transform(x_val)
+
+    if pca:
+        x_train, x_val, feature_names = apply_pca(x_train, x_val, feature_names)
+
+    model = RandomForestRegressor(n_estimators=60, verbose=2)
+    model.fit(x_train, y_train)
+
+    resume_training(model, x_val, y_val)
+
+    if show_ft_ip:
+        show_feat_imp(model.feature_importances_, feature_names)
+
 def mlp(train_df, pca=False):
     x = train_df.drop(['id', 'store_nbr', 'sales', 'dcoilwtico'], axis=1)
     y = train_df['sales']
@@ -181,31 +204,3 @@ def mlp(train_df, pca=False):
     y_val = y[:frac]
 
     resume_training(model, x_val, y_val)
-
-
-def sgd(train_df, show_ft_ip=False, pca=False):
-    x = train_df.drop(['id', 'store_nbr', 'sales', 'dcoilwtico'], axis=1)
-    y = train_df['sales']
-
-    frac = int(len(x) * 0.85)
-
-    feature_names = list(x.columns)
-
-    scaler = StandardScaler()
-    x = scaler.fit_transform(x)
-
-    if pca:
-        pca = PCA(n_components=0.95)
-        x = pca.fit_transform(x)
-
-    model = SGDRegressor(verbose=True, early_stopping=True, validation_fraction=0.2,
-                         n_iter_no_change=20)
-    model = model.fit(x, y)
-
-    x_val = x[:frac]
-    y_val = y[:frac]
-
-    resume_training(model, x_val, y_val)
-
-    if show_ft_ip:
-        show_feat_imp(model.coef_, feature_names)
