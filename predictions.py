@@ -184,6 +184,7 @@ def rf(train_df, show_ft_ip=False, pca=False):
     if show_ft_ip:
         show_feat_imp(model.feature_importances_, feature_names)
 
+
 def mlp(train_df, pca=False):
     x = train_df.drop(['id', 'store_nbr', 'sales', 'dcoilwtico'], axis=1)
     y = train_df['sales']

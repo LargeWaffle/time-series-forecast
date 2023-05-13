@@ -44,6 +44,8 @@ def df_with_dt(f_path):
 
 
 def read_sales(data_path):
+
+    # df = pd.read_csv('BTC-USD.csv', index_col = 'Date', parse_dates=True)
     sample_sub = pd.read_csv(data_path + '/store-sales/sample_submission.csv')
     stores_df = pd.read_csv(data_path + '/store-sales/stores.csv')
 
