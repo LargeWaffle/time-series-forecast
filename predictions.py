@@ -136,9 +136,36 @@ def xgb_regressor(train_df, show_ft_ip=False, pca=False):
         show_feat_imp(model.feature_importances_, feature_names)
 
 
+def lgbm(train_df, show_ft_ip=False, pca=False):
+    x = train_df.drop(['id', 'store_nbr', 'sales', 'dcoilwtico'], axis=1)
+    y = train_df['sales']
+
+    feature_names = list(x.columns)
+
+    x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.2, random_state=42)
+
+    scaler = MinMaxScaler()
+    x_train = scaler.fit_transform(x_train)
+    x_val = scaler.transform(x_val)
+
+    if pca:
+        x_train, x_val, feature_names = apply_pca(x_train, x_val, feature_names)
+
+    ft_attr = 'gain'
+    model = LGBMRegressor(n_estimators=60, importance_type=ft_attr, eval_metric='rmse', early_stopping_rounds=5)
+    model = model.fit(x_train, y_train, eval_set=[(x_val, y_val)], feature_name=feature_names)
+
+    resume_training(model, x_val, y_val)
+
+    if show_ft_ip:
+        show_feat_imp(model.feature_importances_, feature_names)
+
+
 def mlp(train_df, pca=False):
     x = train_df.drop(['id', 'store_nbr', 'sales', 'dcoilwtico'], axis=1)
     y = train_df['sales']
+
+    frac = int(len(x) * 0.85)
 
     scaler = MinMaxScaler()
     x = scaler.fit_transform(x)
@@ -147,10 +174,38 @@ def mlp(train_df, pca=False):
         pca = PCA(n_components=0.95)
         x = pca.fit_transform(x)
 
-    model = MLPRegressor(max_iter=150, verbose=True, early_stopping=True, validation_fraction=0.2)
+    model = MLPRegressor(max_iter=200, verbose=True, early_stopping=True, validation_fraction=0.2)
     model = model.fit(x, y)
 
-    x_val = x[:750]
-    y_val = y[:750]
+    x_val = x[:frac]
+    y_val = y[:frac]
 
     resume_training(model, x_val, y_val)
+
+
+def sgd(train_df, show_ft_ip=False, pca=False):
+    x = train_df.drop(['id', 'store_nbr', 'sales', 'dcoilwtico'], axis=1)
+    y = train_df['sales']
+
+    frac = int(len(x) * 0.85)
+
+    feature_names = list(x.columns)
+
+    scaler = StandardScaler()
+    x = scaler.fit_transform(x)
+
+    if pca:
+        pca = PCA(n_components=0.95)
+        x = pca.fit_transform(x)
+
+    model = SGDRegressor(verbose=True, early_stopping=True, validation_fraction=0.2,
+                         n_iter_no_change=20)
+    model = model.fit(x, y)
+
+    x_val = x[:frac]
+    y_val = y[:frac]
+
+    resume_training(model, x_val, y_val)
+
+    if show_ft_ip:
+        show_feat_imp(model.coef_, feature_names)
