@@ -1,6 +1,7 @@
 import xgboost as xgb
 from lightgbm import LGBMRegressor
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.neighbors import KNeighborsRegressor
 from sklearn.linear_model import LinearRegression, ElasticNet
 from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
@@ -56,7 +57,14 @@ class RandomForestModel(BaseModel):
         self.ft_values = self.assign_ftip(ft_type)
 
 
+class KNNModel(BaseModel):
+    def __init__(self, show_fip=False, pca=False, scaler=StandardScaler(), nb_neighbours=5):
+        super().__init__(False, pca, scaler)
+
+        self.model = KNeighborsRegressor(n_neighbors=nb_neighbours)
+
+
 class MLPModel(BaseModel):
-    def __init__(self, pca=False, scaler=MinMaxScaler(), maxiter=150, val_frac=0.2):
+    def __init__(self, show_fip=False, pca=False, scaler=MinMaxScaler(), maxiter=150, val_frac=0.2):
         super().__init__(False, pca, scaler)
         self.model = MLPRegressor(max_iter=maxiter, verbose=True, early_stopping=True, validation_fraction=val_frac)

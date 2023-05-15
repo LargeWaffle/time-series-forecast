@@ -25,7 +25,7 @@ class BaseModel:
         self.show_fip = show_fip
 
         self.model = None
-        self.ft_values = None
+        self.ft_values = []
         self.feature_names = None
 
         self.scaler = scaler
@@ -67,19 +67,17 @@ class BaseModel:
         return x_train, x_val, y_train, y_val
 
     def assign_ftip(self, ft_type):
-
-        if ft_type == "linear":
-            return self.model.coef_
-        elif ft_type == "tree":
-            return self.model.feature_importances_
-        else:
-            return []
+        if self.show_fip:
+            if ft_type == "linear":
+                return self.model.coef_
+            elif ft_type == "tree":
+                return self.model.feature_importances_
+            else:
+                return []
 
     def train(self, x_train, y_train, x_val, y_val, ft_type="linear"):
         self.model.fit(x_train, y_train)
-
-        if self.show_fip:
-            self.ft_values = self.assign_ftip(ft_type)
+        self.ft_values = self.assign_ftip(ft_type)
 
     def predict(self, x_val, neg_to_zero=True):
         y_pred = self.model.predict(x_val)
@@ -111,18 +109,3 @@ class BaseModel:
         if self.show_fip:
             print("Plotting feature importance")
             self.show_feature_importance(self.ft_values)
-
-
-class ModelManager:
-    def __init__(self, model_class):
-        self.model_class = model_class
-        print(f"Working with : {self.model_class.__name__}\n")
-
-    def run_experiment(self, train_df, val_df, drop_cols, show_fip=True, pca=False, scaler=None):
-        model = self.model_class(show_fip, pca, scaler())
-
-        x_train, x_val, y_train, y_val = model.process_data(train_df, val_df, drop_cols)
-        model.train(x_train, y_train, x_val, y_val)
-
-        y_pred = model.predict(x_val)
-        model.resume_training(y_val, y_pred)
