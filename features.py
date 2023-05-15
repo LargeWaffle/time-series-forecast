@@ -1,6 +1,19 @@
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder, PolynomialFeatures
 
+from statsmodels.tsa.stattools import adfuller
+
+
+def stationary_test(df):
+    ts = df['sales'].iloc[:15000]
+    result = adfuller(ts)
+
+    print('ADF Statistic: %f' % result[0])
+    print('p-value: %f' % result[1])
+    print('Critical Values:')
+    for key, value in result[4].items():
+        print('\t%s: %.3f' % (key, value))
+
 
 def format_sales(df, stores_df, oil_df, holidays_df, transactions_df):
     df = df.merge(stores_df, on='store_nbr', how='left')
