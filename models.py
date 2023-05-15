@@ -58,13 +58,13 @@ class RandomForestModel(BaseModel):
 
 
 class KNNModel(BaseModel):
-    def __init__(self, show_fip=False, pca=False, scaler=StandardScaler(), nb_neighbours=5):
+    def __init__(self, pca=False, scaler=StandardScaler(), nb_neighbours=5):
         super().__init__(False, pca, scaler)
 
         self.model = KNeighborsRegressor(n_neighbors=nb_neighbours)
 
 
 class MLPModel(BaseModel):
-    def __init__(self, show_fip=False, pca=False, scaler=MinMaxScaler(), maxiter=150, val_frac=0.2):
+    def __init__(self, pca=False, scaler=MinMaxScaler(), maxiter=150, val_frac=0.2):
         super().__init__(False, pca, scaler)
         self.model = MLPRegressor(max_iter=maxiter, verbose=True, early_stopping=True, validation_fraction=val_frac)
