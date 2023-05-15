@@ -6,23 +6,10 @@ from sklearn.decomposition import PCA
 from sklearn.linear_model import LinearRegression, ElasticNet
 from lightgbm import LGBMRegressor
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, PredictionErrorDisplay
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 from sklearn.neural_network import MLPRegressor
-
-
-def plot_predictions(x_val, y_val, y_pred):
-    samples = list(range(0, len(x_val)))
-    plt.figure(figsize=(10, 6))
-    plt.plot(samples, y_val, label='Expected', alpha=0.5)
-    plt.plot(samples, y_pred, label='Predicted', alpha=0.5)
-    plt.legend(loc="upper right")
-    plt.show()
-
-    plt.plot(samples, abs(y_val - y_pred), label='Difference')
-    plt.legend(loc="upper right")
-    plt.show()
 
 
 def apply_pca(x_train, x_val, feature_names):
@@ -51,6 +38,45 @@ def show_feat_imp(feature_val, feature_names):
     plt.show()
 
 
+def process_data(train_df, val_df, pca, scaler):
+
+    drop_cols = ['id', 'store_nbr', 'sales', 'dcoilwtico']
+
+    x_train = train_df.drop(drop_cols, axis=1)
+    y_train = train_df['sales']
+
+    x_val = val_df.drop(drop_cols, axis=1)
+    y_val = val_df['sales']
+
+    feature_names = list(x_train.columns)
+
+    if scaler is None:
+        scaler = StandardScaler()
+
+    x_train = scaler.fit_transform(x_train)
+    x_val = scaler.transform(x_val)
+
+    if pca:
+        x_train, x_val, feature_names = apply_pca(x_train, x_val, feature_names)
+
+    return x_train, x_val, y_train, y_val, feature_names
+
+
+def plot_predictions(x_val, y_val, y_pred):
+    samples = list(range(0, len(x_val)))
+    plt.figure(figsize=(10, 6))
+
+    plt.plot(samples, y_val, label='Expected', alpha=0.5)
+
+    plt.plot(samples, y_pred, label='Predicted', alpha=0.5)
+    plt.legend(loc="upper right")
+
+    plt.plot(samples, abs(y_val - y_pred), label='Difference')
+    plt.legend(loc="upper right")
+
+    plt.show()
+
+
 def resume_training(model, x_val, y_val):
     y_pred = model.predict(x_val)
     y_pred[y_pred < 0] = 0
@@ -62,20 +88,8 @@ def resume_training(model, x_val, y_val):
     plot_predictions(x_val, y_val, y_pred)
 
 
-def lreg(train_df, show_ft_ip=False, pca=False):
-    x = train_df.drop(['id', 'store_nbr', 'sales', 'dcoilwtico'], axis=1)
-    y = train_df['sales']
-
-    feature_names = list(x.columns)
-
-    x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.2, random_state=42)
-
-    scaler = StandardScaler()
-    x_train = scaler.fit_transform(x_train)
-    x_val = scaler.transform(x_val)
-
-    if pca:
-        x_train, x_val, feature_names = apply_pca(x_train, x_val, feature_names)
+def lreg(train_df, val_df, show_ft_ip=False, pca=False):
+    x_train, x_val, y_train, y_val, feature_names = process_data(train_df, val_df, pca, None)
 
     model = LinearRegression()
     model.fit(x_train, y_train)
@@ -86,20 +100,8 @@ def lreg(train_df, show_ft_ip=False, pca=False):
         show_feat_imp(model.coef_, feature_names)
 
 
-def elastic(train_df, show_ft_ip=False, pca=False):
-    x = train_df.drop(['id', 'store_nbr', 'sales', 'dcoilwtico'], axis=1)
-    y = train_df['sales']
-
-    feature_names = list(x.columns)
-
-    x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.2, random_state=42)
-
-    scaler = StandardScaler()
-    x_train = scaler.fit_transform(x_train)
-    x_val = scaler.transform(x_val)
-
-    if pca:
-        x_train, x_val, feature_names = apply_pca(x_train, x_val, feature_names)
+def elastic(train_df, val_df, show_ft_ip=False, pca=False):
+    x_train, x_val, y_train, y_val, feature_names = process_data(train_df, val_df, pca, None)
 
     model = ElasticNet()
     model.fit(x_train, y_train)
@@ -110,20 +112,8 @@ def elastic(train_df, show_ft_ip=False, pca=False):
         show_feat_imp(model.coef_, feature_names)
 
 
-def xgb_regressor(train_df, show_ft_ip=False, pca=False):
-    x = train_df.drop(['id', 'store_nbr', 'sales', 'dcoilwtico'], axis=1)
-    y = train_df['sales']
-
-    feature_names = list(x.columns)
-
-    x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.2, random_state=42)
-
-    scaler = MinMaxScaler()
-    x_train = scaler.fit_transform(x_train)
-    x_val = scaler.transform(x_val)
-
-    if pca:
-        x_train, x_val, feature_names = apply_pca(x_train, x_val, feature_names)
+def xgb_regressor(train_df, val_df, show_ft_ip=False, pca=False):
+    x_train, x_val, y_train, y_val, feature_names = process_data(train_df, val_df, pca, scaler=MinMaxScaler())
 
     ft_attr = 'gain'
     model = xgb.XGBRegressor(n_estimators=25, importance_type=ft_attr, eval_metric='rmse', early_stopping_rounds=5)
@@ -136,20 +126,8 @@ def xgb_regressor(train_df, show_ft_ip=False, pca=False):
         show_feat_imp(model.feature_importances_, feature_names)
 
 
-def lgbm(train_df, show_ft_ip=False, pca=False):
-    x = train_df.drop(['id', 'store_nbr', 'sales', 'dcoilwtico'], axis=1)
-    y = train_df['sales']
-
-    feature_names = list(x.columns)
-
-    x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.2, random_state=42)
-
-    scaler = MinMaxScaler()
-    x_train = scaler.fit_transform(x_train)
-    x_val = scaler.transform(x_val)
-
-    if pca:
-        x_train, x_val, feature_names = apply_pca(x_train, x_val, feature_names)
+def lgbm(train_df, val_df, show_ft_ip=False, pca=False):
+    x_train, x_val, y_train, y_val, feature_names = process_data(train_df, val_df, pca, scaler=MinMaxScaler())
 
     ft_attr = 'gain'
     model = LGBMRegressor(n_estimators=60, importance_type=ft_attr, eval_metric='rmse', early_stopping_rounds=5)
@@ -161,20 +139,8 @@ def lgbm(train_df, show_ft_ip=False, pca=False):
         show_feat_imp(model.feature_importances_, feature_names)
 
 
-def rf(train_df, show_ft_ip=False, pca=False):
-    x = train_df.drop(['id', 'store_nbr', 'sales', 'dcoilwtico'], axis=1)
-    y = train_df['sales']
-
-    feature_names = list(x.columns)
-
-    x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.2, random_state=42)
-
-    scaler = StandardScaler()
-    x_train = scaler.fit_transform(x_train)
-    x_val = scaler.transform(x_val)
-
-    if pca:
-        x_train, x_val, feature_names = apply_pca(x_train, x_val, feature_names)
+def rf(train_df, val_df, show_ft_ip=False, pca=False):
+    x_train, x_val, y_train, y_val, feature_names = process_data(train_df, val_df, pca, None)
 
     model = RandomForestRegressor(n_estimators=60, verbose=2)
     model.fit(x_train, y_train)
@@ -185,23 +151,10 @@ def rf(train_df, show_ft_ip=False, pca=False):
         show_feat_imp(model.feature_importances_, feature_names)
 
 
-def mlp(train_df, pca=False):
-    x = train_df.drop(['id', 'store_nbr', 'sales', 'dcoilwtico'], axis=1)
-    y = train_df['sales']
-
-    frac = int(len(x) * 0.85)
-
-    scaler = MinMaxScaler()
-    x = scaler.fit_transform(x)
-
-    if pca:
-        pca = PCA(n_components=0.95)
-        x = pca.fit_transform(x)
+def mlp(train_df, val_df, pca=False):
+    x_train, x_val, y_train, y_val, _ = process_data(train_df, val_df, pca, MinMaxScaler())
 
     model = MLPRegressor(max_iter=200, verbose=True, early_stopping=True, validation_fraction=0.2)
-    model = model.fit(x, y)
-
-    x_val = x[:frac]
-    y_val = y[:frac]
+    model = model.fit(x_train, y_train)
 
     resume_training(model, x_val, y_val)

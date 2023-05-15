@@ -5,10 +5,11 @@ import torch.optim as optim
 import torch.utils.data as data
 import matplotlib.pyplot as plt
 
-class AirModel(nn.Module):
+
+class lstmModel(nn.Module):
     def __init__(self):
         super().__init__()
-        self.lstm = nn.LSTM(input_size=1, hidden_size=50, num_layers=1, batch_first=True)
+        self.lstm = nn.LSTM(input_size=1, hidden_size=50, num_layers=2, batch_first=True)
         self.linear = nn.Linear(50, 1)
 
     def forward(self, x):
@@ -17,11 +18,11 @@ class AirModel(nn.Module):
         return x
 
 
-def train_model():
-    model = AirModel()
+def train_model(x_train, y_train, b_size):
+    model = lstmModel()
     optimizer = optim.Adam(model.parameters())
     loss_fn = nn.MSELoss()
-    loader = data.DataLoader(data.TensorDataset(X_train, y_train), shuffle=True, batch_size=8)
+    loader = data.DataLoader(data.TensorDataset(x_train, y_train), shuffle=True, batch_size=b_size)
 
     n_epochs = 2000
     for epoch in range(n_epochs):
@@ -32,14 +33,17 @@ def train_model():
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+
         # Validation
         if epoch % 100 != 0:
             continue
+
         model.eval()
+
         with torch.no_grad():
-            y_pred = model(X_train)
+            y_pred = model(x_train)
             train_rmse = np.sqrt(loss_fn(y_pred, y_train))
-            y_pred = model(X_test)
+            y_pred = model(x_test)
             test_rmse = np.sqrt(loss_fn(y_pred, y_test))
         print("Epoch %d: train RMSE %.4f, test RMSE %.4f" % (epoch, train_rmse, test_rmse))
 
@@ -53,7 +57,7 @@ def predict(model):
         train_plot[lookback:train_size] = model(X_train)[:, -1, :]
         # shift test predictions for plotting
         test_plot = np.ones_like(timeseries) * np.nan
-        test_plot[train_size+lookback:len(timeseries)] = model(X_test)[:, -1, :]
+        test_plot[train_size + lookback:len(timeseries)] = model(X_test)[:, -1, :]
 
     # plot
     plt.plot(timeseries, c='b')

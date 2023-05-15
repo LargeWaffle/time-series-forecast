@@ -37,26 +37,18 @@ def format_sales(df, stores_df, oil_df, holidays_df, transactions_df):
     return df
 
 
-def df_with_dt(f_path):
-    df = pd.read_csv(f_path)
-    df['date'] = pd.to_datetime(df['date'])
-    return df
-
-
 def read_sales(data_path):
-
-    # df = pd.read_csv('BTC-USD.csv', index_col = 'Date', parse_dates=True)
     sample_sub = pd.read_csv(data_path + '/store-sales/sample_submission.csv')
     stores_df = pd.read_csv(data_path + '/store-sales/stores.csv')
 
-    train_df = df_with_dt(data_path + '/store-sales/train.csv')
-    test_df = df_with_dt(data_path + '/store-sales/test.csv')
-    oil_df = df_with_dt(data_path + '/store-sales/oil.csv')
+    train_df = pd.read_csv(data_path + '/store-sales/train.csv', parse_dates=['date'])
+    test_df = pd.read_csv(data_path + '/store-sales/test.csv', parse_dates=['date'])
+    oil_df = pd.read_csv(data_path + '/store-sales/oil.csv', parse_dates=['date'])
 
-    holidays_df = df_with_dt(data_path + '/store-sales/holidays_events.csv')
+    holidays_df = pd.read_csv(data_path + '/store-sales/holidays_events.csv', parse_dates=['date'])
     holidays_df['holiday'] = 1
 
-    transactions_df = df_with_dt(data_path + '/store-sales/transactions.csv')
+    transactions_df = pd.read_csv(data_path + '/store-sales/transactions.csv', parse_dates=['date'])
 
     train_df = format_sales(train_df, stores_df, oil_df, holidays_df, transactions_df)
     test_df = format_sales(test_df, stores_df, oil_df, holidays_df, transactions_df)
