@@ -63,13 +63,13 @@ def unify_types(df):
 
 
 def format_sales(df, data_path):
-    stores_df = pd.read_csv(data_path + '/store-sales/stores.csv')
-    oil_df = pd.read_csv(data_path + '/store-sales/oil.csv', parse_dates=['date'])
+    stores_df = pd.read_csv(data_path + '/stores.csv')
+    oil_df = pd.read_csv(data_path + '/oil.csv', parse_dates=['date'])
 
-    holidays_df = pd.read_csv(data_path + '/store-sales/holidays_events.csv', parse_dates=['date'])
+    holidays_df = pd.read_csv(data_path + '/holidays_events.csv', parse_dates=['date'])
     holidays_df['holiday'] = 1
 
-    transactions_df = pd.read_csv(data_path + '/store-sales/transactions.csv', parse_dates=['date'])
+    transactions_df = pd.read_csv(data_path + '/transactions.csv', parse_dates=['date'])
 
     df = df.merge(stores_df, on='store_nbr', how='left')
     df = df.merge(oil_df, on='date', how='left')
@@ -97,8 +97,8 @@ def format_sales(df, data_path):
 
 
 def read_sales(data_path):
-    train_df = pd.read_csv(data_path + '/store-sales/train.csv', parse_dates=['date'])
-    test_df = pd.read_csv(data_path + '/store-sales/test.csv', parse_dates=['date'])
+    train_df = pd.read_csv(data_path + '/train.csv', parse_dates=['date'])
+    test_df = pd.read_csv(data_path + '/test.csv', parse_dates=['date'])
 
     data_df = pd.concat([train_df, test_df], axis=0)
     data_df = format_sales(data_df, data_path)

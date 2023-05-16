@@ -3,13 +3,13 @@ import pandas as pd
 from features import read_sales
 from models import LRegModel, ElasticModel, XGBModel, LGBMModel, RandomForestModel, KNNModel, MLPModel
 
-DATAPATH = "data"
+DATAPATH = "data/stores-sales"
 
 
 def create_submission(model, test_df):
     test_sales = model.predict(test_df, new_data=True)
 
-    submission_df = pd.read_csv(DATAPATH + '/store-sales/sample_submission.csv')
+    submission_df = pd.read_csv(DATAPATH + '/sample_submission.csv')
     submission_df['sales'] = test_sales
     submission_df.to_csv('submission.csv', index=False)
 
