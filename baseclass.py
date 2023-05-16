@@ -83,16 +83,28 @@ class BaseModel:
         self.model.fit(x_train, y_train)
         self.ft_values = self.assign_ftip(ft_type)
 
-    def predict(self, val, new_data=False, neg_to_zero=True):
+    def evaluate(self, df, neg_to_zero=True):
 
-        if new_data:
-            val = val.drop(self.dropped, axis=1)
-            val = self.scaler.transform(val)
+        y_pred = self.model.predict(df)
 
-            if self.use_pca:
-                val = self.pca.transform(val)
+        if neg_to_zero:
+            y_pred[y_pred < 0] = 0
 
-        y_pred = self.model.predict(val)
+        return y_pred
+
+    def predict(self, df, neg_to_zero=True):
+
+        df = df.drop(self.dropped, axis=1)
+        df = self.scaler.transform(df)
+
+        if self.use_pca:
+            df = self.pca.transform(df)
+
+        y_pred = []
+        for row in df:
+            y_pred.append(self.model.predict(row))
+
+        y_pred = np.asarray(y_pred)
 
         if neg_to_zero:
             y_pred[y_pred < 0] = 0

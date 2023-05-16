@@ -1,6 +1,6 @@
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
+import numpy as np
 import pandas as pd
-from features import read_sales
+from salesft import read_sales
 from models import LRegModel, ElasticModel, XGBModel, LGBMModel, RandomForestModel, KNNModel, MLPModel
 
 DATAPATH = "data/store-sales"
@@ -26,12 +26,12 @@ if __name__ == '__main__':
 
     drop_cols = ['id', 'sales', 'dcoilwtico']
 
-    forecast_model = XGBModel(show_fip=True, use_pca=False, scaler=MinMaxScaler(), nb_estimators=200)
+    forecast_model = RandomForestModel(show_fip=True, use_pca=True, nb_estimators=150)
 
     x_train, x_val, y_train, y_val = forecast_model.process_data(train_df, val_df, drop_cols)
     forecast_model.train(x_train, y_train, x_val, y_val)
 
-    y_pred = forecast_model.predict(x_val)
+    y_pred = forecast_model.evaluate(x_val)
     forecast_model.resume_training(y_val, y_pred)
 
     # create_submission(forecast_model, test_data)
