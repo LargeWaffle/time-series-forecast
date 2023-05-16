@@ -6,27 +6,27 @@ from sklearn.linear_model import LinearRegression, ElasticNet
 from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
-from base import BaseModel
+from baseclass import BaseModel
 
 
 class LRegModel(BaseModel):
-    def __init__(self, show_fip=True, pca=False, scaler=StandardScaler()):
-        super().__init__(show_fip, pca, scaler)
+    def __init__(self, show_fip=True, use_pca=False, scaler=StandardScaler()):
+        super().__init__(show_fip, use_pca, scaler)
         self.model = LinearRegression()
 
 
 class ElasticModel(BaseModel):
-    def __init__(self, show_fip=True, pca=False, scaler=StandardScaler()):
-        super().__init__(show_fip, pca, scaler)
+    def __init__(self, show_fip=True, use_pca=False, scaler=StandardScaler()):
+        super().__init__(show_fip, use_pca, scaler)
         self.model = ElasticNet()
 
 
 class XGBModel(BaseModel):
-    def __init__(self, show_fip=True, pca=False, scaler=MinMaxScaler(), ft_attr='gain', nb_estimators=100):
-        super().__init__(show_fip, pca, scaler)
+    def __init__(self, show_fip=True, use_pca=False, scaler=MinMaxScaler(), ft_attr='gain', nb_estimators=100):
+        super().__init__(show_fip, use_pca, scaler)
 
         self.model = xgb.XGBRegressor(n_estimators=nb_estimators, importance_type=ft_attr, eval_metric='rmse',
-                                      early_stopping_rounds=5)
+                                      early_stopping_rounds=10)
 
     def train(self, x_train, y_train, x_val, y_val, ft_type="tree"):
         self.model.fit(x_train, y_train, eval_set=[(x_val, y_val)])
@@ -35,8 +35,8 @@ class XGBModel(BaseModel):
 
 
 class LGBMModel(BaseModel):
-    def __init__(self, show_fip=True, pca=False, scaler=MinMaxScaler(), ft_attr='gain', nb_estimators=100):
-        super().__init__(show_fip, pca, scaler)
+    def __init__(self, show_fip=True, use_pca=False, scaler=MinMaxScaler(), ft_attr='gain', nb_estimators=100):
+        super().__init__(show_fip, use_pca, scaler)
 
         self.model = LGBMRegressor(n_estimators=nb_estimators, importance_type=ft_attr, eval_metric='rmse',
                                    early_stopping_rounds=5)
@@ -47,8 +47,8 @@ class LGBMModel(BaseModel):
 
 
 class RandomForestModel(BaseModel):
-    def __init__(self, show_fip=True, pca=False, scaler=StandardScaler(), nb_estimators=100):
-        super().__init__(show_fip, pca, scaler)
+    def __init__(self, show_fip=True, use_pca=False, scaler=StandardScaler(), nb_estimators=100):
+        super().__init__(show_fip, use_pca, scaler)
 
         self.model = RandomForestRegressor(n_estimators=nb_estimators, verbose=2)
 
@@ -58,13 +58,13 @@ class RandomForestModel(BaseModel):
 
 
 class KNNModel(BaseModel):
-    def __init__(self, pca=False, scaler=StandardScaler(), nb_neighbours=5):
-        super().__init__(False, pca, scaler)
+    def __init__(self, use_pca=False, scaler=StandardScaler(), nb_neighbours=5):
+        super().__init__(False, use_pca, scaler)
 
         self.model = KNeighborsRegressor(n_neighbors=nb_neighbours)
 
 
 class MLPModel(BaseModel):
-    def __init__(self, pca=False, scaler=MinMaxScaler(), maxiter=150, val_frac=0.2):
-        super().__init__(False, pca, scaler)
+    def __init__(self, use_pca=False, scaler=MinMaxScaler(), maxiter=150, val_frac=0.2):
+        super().__init__(False, use_pca, scaler)
         self.model = MLPRegressor(max_iter=maxiter, verbose=True, early_stopping=True, validation_fraction=val_frac)

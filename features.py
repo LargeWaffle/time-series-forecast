@@ -33,7 +33,36 @@ def assign_time_ft(df):
     return df
 
 
-def format_sales(df, test_df, data_path):
+def fill_na(df):
+    # df['holiday_type'] = df['holiday_type'].fillna('Common')
+    # df['locale'] = df['locale'].fillna('Common')
+    # df['description'] = df['description'].fillna('Unknown')
+    df['transactions'] = df['transferred'].fillna(0)
+
+    df['transferred'] = df['transferred'].fillna(False)
+    df['transferred'] = df['transferred'].astype(int)
+
+    df['dcoilwtico'] = df['dcoilwtico'].fillna(method='backfill')
+
+    return df
+
+
+def lag_ft(df, cols, lags):
+    for c in cols:
+        for lag in lags:
+            df[f'{c}_{lag}'] = df[c].shift(lag)
+
+    return df
+
+
+def unify_types(df):
+    df[df.select_dtypes(np.int64).columns] = df.select_dtypes(np.int64).astype(np.int32)
+    df[df.select_dtypes(np.float32).columns] = df.select_dtypes(np.float32).astype(np.float64)
+
+    return df
+
+
+def format_sales(df, data_path):
     stores_df = pd.read_csv(data_path + '/store-sales/stores.csv')
     oil_df = pd.read_csv(data_path + '/store-sales/oil.csv', parse_dates=['date'])
 
@@ -48,46 +77,38 @@ def format_sales(df, test_df, data_path):
 
     lb = LabelEncoder()
     df['family'] = lb.fit_transform(df['family'])
-    test_df['family'] = lb.transform(test_df['family'])
-
     df['city'] = lb.fit_transform(df['city'])
     df['state'] = lb.fit_transform(df['state'])
     df['type'] = lb.fit_transform(df['type'])
 
-    df = df.merge(holidays_df[['date', 'holiday']], on='date', how='left')
+    df = df.merge(holidays_df[['date', 'holiday', 'transferred']], on='date', how='left')
+
     df['holiday'].fillna(0, inplace=True)
     df['holiday'] = df['holiday'].astype(int)
 
-    lags = [1, 7, 14]
-    for lag in lags:
-        df[f'oil_lag_{lag}'] = df['dcoilwtico'].shift(lag)
-
+    df = fill_na(df)
+    df = lag_ft(df, ['dcoilwtico', 'sales'], [1, 2, 3, 7, 14, 21, 364])
     df = assign_time_ft(df)
-    test_df = assign_time_ft(test_df)
 
-    df.dropna(inplace=True)
-    test_df.dropna(inplace=True)
-
-    df = df[~((df.store_nbr == 52) & (df.date < "2017-04-20"))]
-    df = df[~((df.store_nbr == 22) & (df.date < "2015-10-09"))]
-    df = df[~((df.store_nbr == 42) & (df.date < "2015-08-21"))]
-    df = df[~((df.store_nbr == 21) & (df.date < "2015-07-24"))]
-    df = df[~((df.store_nbr == 29) & (df.date < "2015-03-20"))]
-    df = df[~((df.store_nbr == 20) & (df.date < "2015-02-13"))]
-    df = df[~((df.store_nbr == 53) & (df.date < "2014-05-29"))]
-    df = df[~((df.store_nbr == 36) & (df.date < "2013-05-09"))]
-
+    df = unify_types(df)
     df = df.set_index('date')
-    test_df = test_df.set_index('date')
 
-    return df, test_df
+    return df
 
 
 def read_sales(data_path):
     train_df = pd.read_csv(data_path + '/store-sales/train.csv', parse_dates=['date'])
     test_df = pd.read_csv(data_path + '/store-sales/test.csv', parse_dates=['date'])
 
-    return format_sales(train_df, test_df, data_path)
+    data_df = pd.concat([train_df, test_df], axis=0)
+    data_df = format_sales(data_df, data_path)
+
+    train_df = data_df[data_df.index <= pd.to_datetime("2017-08-15")]
+    train_df = train_df.dropna()
+
+    test_df = data_df[data_df.index > pd.to_datetime("2017-08-15")]
+
+    return train_df, test_df
 
 
 def read_energy(data_path):

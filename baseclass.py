@@ -20,11 +20,13 @@ def plot_predictions(nb_samples, y_val, y_pred):
 
 
 class BaseModel:
-    def __init__(self, show_fip=True, pca=False, scaler=None):
-        self.pca = pca
+    def __init__(self, show_fip=True, use_pca=False, scaler=None):
+        self.use_pca = use_pca
         self.show_fip = show_fip
 
         self.model = None
+        self.pca = None
+        self.dropped = []
         self.ft_values = []
         self.feature_names = None
 
@@ -33,14 +35,14 @@ class BaseModel:
         self.nb_val_samples = 0
 
     def apply_pca(self, x_train, x_val):
-        pca = PCA(n_components=0.95)
-        x_train = pca.fit_transform(x_train)
-        x_val = pca.transform(x_val)
+        self.pca = PCA(n_components=0.95)
+        x_train = self.pca.fit_transform(x_train)
+        x_val = self.pca.transform(x_val)
 
-        n_pcs = pca.components_.shape[0]
+        n_pcs = self.pca.components_.shape[0]
 
         # get the most important feature on EACH component
-        most_important = [np.abs(pca.components_[i]).argmax() for i in range(n_pcs)]
+        most_important = [np.abs(self.pca.components_[i]).argmax() for i in range(n_pcs)]
         # get the names
         most_names = [self.feature_names[most_important[i]] for i in range(n_pcs)]
         self.feature_names = ['PC{}_{}'.format(i + 1, most_names[i]) for i in range(n_pcs)]
@@ -48,6 +50,8 @@ class BaseModel:
         return x_train, x_val
 
     def process_data(self, train_df, val_df, drop_cols):
+
+        self.dropped = drop_cols
         x_train = train_df.drop(drop_cols, axis=1)
         y_train = train_df['sales']
 
@@ -61,7 +65,7 @@ class BaseModel:
         x_train = self.scaler.fit_transform(x_train)
         x_val = self.scaler.transform(x_val)
 
-        if self.pca:
+        if self.use_pca:
             x_train, x_val = self.apply_pca(x_train, x_val)
 
         return x_train, x_val, y_train, y_val
@@ -79,8 +83,16 @@ class BaseModel:
         self.model.fit(x_train, y_train)
         self.ft_values = self.assign_ftip(ft_type)
 
-    def predict(self, x_val, neg_to_zero=True):
-        y_pred = self.model.predict(x_val)
+    def predict(self, val, new_data=False, neg_to_zero=True):
+
+        if new_data:
+            val = val.drop(self.dropped, axis=1)
+            val = self.scaler.transform(val)
+
+            if self.use_pca:
+                val = self.pca.transform(val)
+
+        y_pred = self.model.predict(val)
 
         if neg_to_zero:
             y_pred[y_pred < 0] = 0
