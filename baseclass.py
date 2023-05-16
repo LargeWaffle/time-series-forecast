@@ -112,7 +112,8 @@ class BaseModel:
 
         print("\nRegression metrics")
         print('MAE: {:.2f}'.format(mean_absolute_error(y_val, y_pred)))
-        print('MSE: {:.2f}'.format(mean_squared_error(y_val, y_pred)))
+        print('MSE: {:.2f}'.format(mean_squared_error(y_val, y_pred, squared=True)))
+        print('RMSE: {:.2f}'.format(mean_squared_error(y_val, y_pred, squared=False)))
         print('R2: {:.2f}'.format(r2_score(y_val, y_pred)))
 
         print("\nPlotting truth vs predictions")

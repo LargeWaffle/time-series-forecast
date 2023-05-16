@@ -3,7 +3,7 @@ import pandas as pd
 from features import read_sales
 from models import LRegModel, ElasticModel, XGBModel, LGBMModel, RandomForestModel, KNNModel, MLPModel
 
-DATAPATH = "data/stores-sales"
+DATAPATH = "data/store-sales"
 
 
 def create_submission(model, test_df):
@@ -24,7 +24,7 @@ if __name__ == '__main__':
     val_size = len(train_data) - train_size
     train_df, val_df = train_data[:train_size], train_data[train_size:]
 
-    drop_cols = ['id', 'sales', 'dcoilwtico', 'dcoilwtico_21', 'is_weekday', 'transferred']
+    drop_cols = ['id', 'sales', 'dcoilwtico']
 
     forecast_model = XGBModel(show_fip=True, use_pca=False, scaler=MinMaxScaler(), nb_estimators=200)
 
@@ -34,6 +34,6 @@ if __name__ == '__main__':
     y_pred = forecast_model.predict(x_val)
     forecast_model.resume_training(y_val, y_pred)
 
-    create_submission(forecast_model, test_data)
+    # create_submission(forecast_model, test_data)
 
     print("\nEnd of program")

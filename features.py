@@ -1,8 +1,8 @@
-import pandas as pd
 import numpy as np
-from sklearn.preprocessing import LabelEncoder, PolynomialFeatures
-
+import pandas as pd
+from sklearn.preprocessing import LabelEncoder
 from statsmodels.tsa.stattools import adfuller
+from statsmodels.tsa.deterministic import CalendarFourier, DeterministicProcess
 
 
 def stationary_test(df):
@@ -18,6 +18,7 @@ def stationary_test(df):
 
 def assign_time_ft(df):
     df['payday'] = ((df['date'].dt.day == 15) | df['date'].dt.is_month_end).astype(int)
+    df["dayofyear"] = df['date'].dt.dayofyear
     df['weekday'] = df['date'].dt.weekday
     df['day'] = df['date'].dt.day
     df['month'] = df['date'].dt.month
@@ -26,18 +27,11 @@ def assign_time_ft(df):
     df['is_weekday'] = 0
     df.loc[df['weekday'] < 5, 'is_weekday'] = 1
 
-    df["season"] = np.where(df.month.isin([12, 1, 2]), 0, 1)
-    df["season"] = np.where(df.month.isin([6, 7, 8]), 2, df["season"])
-    df["season"] = pd.Series(np.where(df.month.isin([9, 10, 11]), 3, df["season"])).astype("int8")
-
     return df
 
 
 def fill_na(df):
-    # df['holiday_type'] = df['holiday_type'].fillna('Common')
-    # df['locale'] = df['locale'].fillna('Common')
-    # df['description'] = df['description'].fillna('Unknown')
-    df['transactions'] = df['transferred'].fillna(0)
+    df['transactions'] = df['transactions'].fillna(0)
 
     df['transferred'] = df['transferred'].fillna(False)
     df['transferred'] = df['transferred'].astype(int)
@@ -47,10 +41,10 @@ def fill_na(df):
     return df
 
 
-def lag_ft(df, cols, lags):
-    for c in cols:
+def lag_ft(df, lag_infos):
+    for col_name, lags in lag_infos.items():
         for lag in lags:
-            df[f'{c}_{lag}'] = df[c].shift(lag)
+            df[f'{col_name}_{lag}'] = df[col_name].shift(lag)
 
     return df
 
@@ -87,11 +81,16 @@ def format_sales(df, data_path):
     df['holiday'] = df['holiday'].astype(int)
 
     df = fill_na(df)
-    df = lag_ft(df, ['dcoilwtico', 'sales'], [1, 2, 3, 7, 14, 21, 364])
+
+    lag_features = {
+        'dcoilwtico': [1, 2, 3, 7, 14],
+        'sales': [1, 2, 3]
+    }
+
+    df = lag_ft(df, lag_features)
     df = assign_time_ft(df)
 
     df = unify_types(df)
-    df = df.set_index('date')
 
     return df
 
