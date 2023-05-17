@@ -26,7 +26,7 @@ class XGBModel(BaseModel):
         super().__init__(show_fip, use_pca, scaler)
 
         self.model = xgb.XGBRegressor(n_estimators=nb_estimators, importance_type=ft_attr, eval_metric='rmse',
-                                      early_stopping_rounds=10)
+                                      early_stopping_rounds=20)
 
     def train(self, x_train, y_train, x_val, y_val, ft_type="tree"):
         self.model.fit(x_train, y_train, eval_set=[(x_val, y_val)])

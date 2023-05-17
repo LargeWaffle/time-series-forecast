@@ -26,7 +26,7 @@ if __name__ == '__main__':
 
     drop_cols = ['id', 'sales', 'dcoilwtico']
 
-    forecast_model = RandomForestModel(show_fip=True, use_pca=True, nb_estimators=150)
+    forecast_model = XGBModel(show_fip=True, use_pca=False, nb_estimators=200)
 
     x_train, x_val, y_train, y_val = forecast_model.process_data(train_df, val_df, drop_cols)
     forecast_model.train(x_train, y_train, x_val, y_val)

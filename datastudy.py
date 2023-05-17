@@ -1,17 +1,11 @@
 import matplotlib.pyplot as plt
 from statsmodels.tsa.stattools import adfuller
+import seaborn as sns
 
 
 def corr_matrix(df):
-    f = plt.figure(figsize=(19, 15))
-    plt.matshow(df.corr(), fignum=f.number)
-    plt.xticks(range(df.select_dtypes(['number']).shape[1]), df.select_dtypes(['number']).columns,
-               fontsize=14, rotation=45)
-    plt.yticks(range(df.select_dtypes(['number']).shape[1]), df.select_dtypes(['number']).columns,
-               fontsize=14)
-    cb = plt.colorbar()
-    cb.ax.tick_params(labelsize=14)
-    plt.title('Correlation Matrix', fontsize=16)
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(df.corr(), annot=False, linewidth=.5, vmin=-1, vmax=1, fmt=".2f", square=True)
     plt.show()
 
 

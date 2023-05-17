@@ -2,10 +2,12 @@ import numpy as np
 import pandas as pd
 
 from sklearn.preprocessing import LabelEncoder
+from statsmodels.tsa.deterministic import DeterministicProcess, CalendarFourier
 
 
 def assign_time_ft(df):
     df['payday'] = ((df['date'].dt.day == 15) | df['date'].dt.is_month_end).astype(int)
+    df['quarter'] = df['date'].dt.quarter
     df["dayofyear"] = df['date'].dt.dayofyear
     df["weekofyear"] = df['date'].dt.isocalendar().week
     df['weekday'] = df['date'].dt.weekday
@@ -33,6 +35,35 @@ def handle_na(df):
     return df
 
 
+def fourier(df):
+    # DeterministicProcess
+    fourier_a = CalendarFourier(freq='A', order=5)
+    fourier_m = CalendarFourier(freq='M', order=2)
+    fourier_w = CalendarFourier(freq='W', order=4)
+
+    dp = DeterministicProcess(index=df.index,
+                              order=1,
+                              seasonal=False,
+                              constant=False,
+                              additional_terms=[fourier_a, fourier_m, fourier_w],
+                              drop=True)
+    dp_df = dp.in_sample()
+    return pd.concat([df, dp_df], axis=1)
+
+
+def encode_ft(df):
+    lb = LabelEncoder()
+    df['family'] = lb.fit_transform(df['family'])
+    df['city'] = lb.fit_transform(df['city'])
+    df['state'] = lb.fit_transform(df['state'])
+    df['store_type'] = lb.fit_transform(df['store_type'])
+    df['holiday_type'] = lb.fit_transform(df['holiday_type'])
+    df['locale'] = lb.fit_transform(df['locale'])
+    df['locale_name'] = lb.fit_transform(df['locale_name'])
+
+    return df
+
+
 def lag_ft(df, lag_infos):
     for col_name, lags in lag_infos.items():
         for lag in lags:
@@ -41,12 +72,13 @@ def lag_ft(df, lag_infos):
     return df
 
 
-def unify_types(df):
-    df[df.select_dtypes(np.int64).columns] = df.select_dtypes(np.int64).astype(np.int32)
-    df[df.select_dtypes(np.float32).columns] = df.select_dtypes(np.float32).astype(np.float64)
+def window_ft(df):
+    df['oil_week_avg'] = df['dcoilwtico'].rolling(7).mean()
+    df['oil_2weeks_avg'] = df['dcoilwtico'].rolling(14).mean()
+    df['oil_month_avg'] = df['dcoilwtico'].rolling(30).mean()
+    df['avg_transactions'] = df['transactions'].rolling(15, min_periods=10).mean()
 
     return df
-
 
 def format_sales(df, data_path):
     stores_df = pd.read_csv(data_path + '/stores.csv')
@@ -69,24 +101,20 @@ def format_sales(df, data_path):
     df = handle_na(df)
     df.loc[df['transferred'] == 1, 'is_holiday'] = 0
 
-    lb = LabelEncoder()
-    df['family'] = lb.fit_transform(df['family'])
-    df['city'] = lb.fit_transform(df['city'])
-    df['state'] = lb.fit_transform(df['state'])
-    df['store_type'] = lb.fit_transform(df['store_type'])
-    df['holiday_type'] = lb.fit_transform(df['holiday_type'])
-    df['locale'] = lb.fit_transform(df['locale'])
-    df['locale_name'] = lb.fit_transform(df['locale_name'])
+    df = encode_ft(df)
 
     lag_features = {
         'dcoilwtico': [1, 2, 3, 7, 14],
-        'sales': [1, 2, 3]
+        'sales': [1, 2, 3],
+        'transactions': [1, 3, 7, 14]
     }
 
     df = lag_ft(df, lag_features)
+    df = window_ft(df)
     df = assign_time_ft(df)
 
-    df = unify_types(df)
+    df[df.select_dtypes(np.int64).columns] = df.select_dtypes(np.int64).astype(np.int32)
+    df[df.select_dtypes(np.float32).columns] = df.select_dtypes(np.float32).astype(np.float64)
 
     return df
 
@@ -103,6 +131,5 @@ def read_sales(data_path):
     train_df = train_df.dropna()
 
     test_df = data_df[data_df.index > pd.to_datetime("2017-08-15")]
-    test_df = test_df.drop(['sales_1', 'sales_2', 'sales_3'], axis=1)
 
     return train_df, test_df
