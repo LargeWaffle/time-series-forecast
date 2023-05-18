@@ -36,6 +36,7 @@ def handle_na(df):
 
 
 def fourier(df):
+    #TODO: Test
     # DeterministicProcess
     fourier_a = CalendarFourier(freq='A', order=5)
     fourier_m = CalendarFourier(freq='M', order=2)
@@ -80,6 +81,7 @@ def window_ft(df):
 
     return df
 
+
 def format_sales(df, data_path):
     stores_df = pd.read_csv(data_path + '/stores.csv')
     stores_df = stores_df.rename(columns={'type': 'store_type'})
@@ -109,9 +111,9 @@ def format_sales(df, data_path):
         'transactions': [1, 3, 7, 14]
     }
 
+    df = assign_time_ft(df)
     df = lag_ft(df, lag_features)
     df = window_ft(df)
-    df = assign_time_ft(df)
 
     df[df.select_dtypes(np.int64).columns] = df.select_dtypes(np.int64).astype(np.int32)
     df[df.select_dtypes(np.float32).columns] = df.select_dtypes(np.float32).astype(np.float64)
