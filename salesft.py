@@ -7,7 +7,6 @@ from statsmodels.tsa.deterministic import DeterministicProcess, CalendarFourier
 
 def assign_time_ft(df):
     df['payday'] = ((df['date'].dt.day == 15) | df['date'].dt.is_month_end).astype(int)
-    df['quarter'] = df['date'].dt.quarter
     df["dayofyear"] = df['date'].dt.dayofyear
     df["weekofyear"] = df['date'].dt.isocalendar().week
     df['weekday'] = df['date'].dt.weekday
@@ -17,6 +16,10 @@ def assign_time_ft(df):
 
     df['is_weekday'] = 0
     df.loc[df['weekday'] < 5, 'is_weekday'] = 1
+
+    df["season"] = np.where(df.month.isin([12, 1, 2]), 0, 1)
+    df["season"] = np.where(df.month.isin([6, 7, 8]), 2, df["season"])
+    df["season"] = pd.Series(np.where(df.month.isin([9, 10, 11]), 3, df["season"])).astype("int8")
 
     return df
 
@@ -36,7 +39,7 @@ def handle_na(df):
 
 
 def fourier(df):
-    #TODO: Test
+    # TODO: Test
     # DeterministicProcess
     fourier_a = CalendarFourier(freq='A', order=5)
     fourier_m = CalendarFourier(freq='M', order=2)
@@ -74,10 +77,9 @@ def lag_ft(df, lag_infos):
 
 
 def window_ft(df):
-    df['oil_week_avg'] = df['dcoilwtico'].rolling(7).mean()
-    df['oil_2weeks_avg'] = df['dcoilwtico'].rolling(14).mean()
-    df['oil_month_avg'] = df['dcoilwtico'].rolling(30).mean()
-    df['avg_transactions'] = df['transactions'].rolling(15, min_periods=10).mean()
+    # df['oil_3d_avg'] = df['dcoilwtico'].rolling(3).mean()
+    # df['oil_week_avg'] = df['dcoilwtico'].rolling(7).mean()
+    # df['avg_transactions'] = df['transactions'].rolling(14, min_periods=10).mean()
 
     return df
 
@@ -106,8 +108,7 @@ def format_sales(df, data_path):
     df = encode_ft(df)
 
     lag_features = {
-        'dcoilwtico': [1, 2, 3, 7, 14],
-        'sales': [1, 2, 3],
+        'dcoilwtico': [1, 3, 7, 14],
         'transactions': [1, 3, 7, 14]
     }
 

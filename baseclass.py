@@ -100,11 +100,7 @@ class BaseModel:
         if self.use_pca:
             df = self.pca.transform(df)
 
-        y_pred = []
-        for row in df:
-            y_pred.append(self.model.predict(row))
-
-        y_pred = np.asarray(y_pred)
+        y_pred = self.model.predict(df)
 
         if neg_to_zero:
             y_pred[y_pred < 0] = 0

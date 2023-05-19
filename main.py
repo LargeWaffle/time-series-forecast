@@ -10,7 +10,7 @@ def create_submission(model, test_df):
     test_sales = model.predict(test_df)
 
     submission_df = pd.read_csv(DATAPATH + '/sample_submission.csv')
-    submission_df['sales'] = test_sales['sales']
+    submission_df['sales'] = test_sales
     submission_df.to_csv('submission.csv', index=False)
 
     print("Submission saved!")
@@ -24,9 +24,9 @@ if __name__ == '__main__':
     val_size = len(train_data) - train_size
     train_df, val_df = train_data[:train_size], train_data[train_size:]
 
-    drop_cols = ['id', 'sales', 'dcoilwtico']
+    drop_cols = ['sales', 'transferred', 'year', 'is_weekday']
 
-    forecast_model = XGBModel(show_fip=False, use_pca=False, nb_estimators=200)
+    forecast_model = XGBModel(show_fip=True, use_pca=False, nb_estimators=350)
 
     x_train, x_val, y_train, y_val = forecast_model.process_data(train_df, val_df, drop_cols)
     forecast_model.train(x_train, y_train, x_val, y_val)
