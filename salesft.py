@@ -21,6 +21,8 @@ def assign_time_ft(df):
     df["season"] = np.where(df.month.isin([6, 7, 8]), 2, df["season"])
     df["season"] = pd.Series(np.where(df.month.isin([9, 10, 11]), 3, df["season"])).astype("int8")
 
+    df['earthquake_rl'] = np.where(df['description'].str.contains('Terremoto Manabi'), 0, 1)
+
     return df
 
 
@@ -38,7 +40,7 @@ def handle_na(df):
     return df
 
 
-def fourier(df):
+"""def fourier(df):
     # TODO: Test
     # DeterministicProcess
     fourier_a = CalendarFourier(freq='A', order=5)
@@ -52,7 +54,7 @@ def fourier(df):
                               additional_terms=[fourier_a, fourier_m, fourier_w],
                               drop=True)
     dp_df = dp.in_sample()
-    return pd.concat([df, dp_df], axis=1)
+    return pd.concat([df, dp_df], axis=1)"""
 
 
 def encode_ft(df):
@@ -77,9 +79,21 @@ def lag_ft(df, lag_infos):
 
 
 def window_ft(df):
-    # df['oil_3d_avg'] = df['dcoilwtico'].rolling(3).mean()
-    # df['oil_week_avg'] = df['dcoilwtico'].rolling(7).mean()
-    # df['avg_transactions'] = df['transactions'].rolling(14, min_periods=10).mean()
+    df['oil_week_avg'] = df['dcoilwtico'].rolling(7).mean()
+    df['oil_week_min'] = df['dcoilwtico'].rolling(7).min()
+    df['oil_week_max'] = df['dcoilwtico'].rolling(7).max()
+
+    df['oil_2weeks_avg'] = df['dcoilwtico'].rolling(14).mean()
+    df['oil_2weeks_min'] = df['dcoilwtico'].rolling(14).min()
+    df['oil_2weeks_max'] = df['dcoilwtico'].rolling(14).max()
+
+    df['oil_month_avg'] = df['dcoilwtico'].rolling(28).mean()
+    df['oil_month_min'] = df['dcoilwtico'].rolling(28).min()
+    df['oil_month_max'] = df['dcoilwtico'].rolling(28).max()
+
+    df['avg_transactions'] = df['transactions'].rolling(15, min_periods=10).mean()
+    df['min_transactions'] = df['transactions'].rolling(15, min_periods=10).min()
+    df['max_transactions'] = df['transactions'].rolling(15, min_periods=10).max()
 
     return df
 
@@ -96,7 +110,6 @@ def format_sales(df, data_path):
     df = df.merge(transactions_df, on=['date', 'store_nbr'], how='left')
 
     holidays_df = pd.read_csv(data_path + '/holidays_events.csv', parse_dates=['date'])
-    holidays_df = holidays_df.drop(['description'], axis=1)
     holidays_df = holidays_df.rename(columns={'type': 'holiday_type'})
     holidays_df['is_holiday'] = 1
 
@@ -113,6 +126,8 @@ def format_sales(df, data_path):
     }
 
     df = assign_time_ft(df)
+    df = df.drop(['description'], axis=1)
+
     df = lag_ft(df, lag_features)
     df = window_ft(df)
 
