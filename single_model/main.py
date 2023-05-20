@@ -26,7 +26,7 @@ if __name__ == '__main__':
 
     drop_cols = ['id', 'sales', 'transferred', 'locale_name']
 
-    forecast_model = LGBMModel(show_fip=True, use_pca=False, nb_estimators=200)
+    forecast_model = XGBModel(show_fip=True, use_pca=False, nb_estimators=200)
 
     x_train, x_val, y_train, y_val = forecast_model.process_data(train_df, val_df, drop_cols)
     forecast_model.train(x_train, y_train, x_val, y_val)
