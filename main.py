@@ -1,6 +1,5 @@
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
+
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import xgboost as xgb
@@ -8,30 +7,6 @@ import xgboost as xgb
 from salesft import read_sales
 
 DATAPATH = "data/store-sales"
-
-
-def show_feature_importance(self, ft_val):
-    plt.figure(figsize=(12, 6))
-
-    (pd.Series(ft_val, index=self.feature_names)
-     .sort_values(ascending=True)
-     .plot(kind='barh'))
-
-    plt.show()
-
-
-def plot_predictions(nb_samples, y_val, y_pred):
-    sp_list = list(range(0, nb_samples))
-    plt.figure(figsize=(10, 6))
-
-    plt.plot(sp_list, y_val, label='Expected', alpha=0.5)
-    plt.plot(sp_list, y_pred, label='Predicted', alpha=0.5)
-    plt.legend(loc="upper right")
-    plt.show()
-
-    plt.plot(sp_list, abs(y_val - y_pred), label='Difference')
-    plt.legend(loc="upper right")
-    plt.show()
 
 
 def create_submission(models_dict, test_df, drop_cols):
@@ -43,7 +18,7 @@ def create_submission(models_dict, test_df, drop_cols):
 
         sales_values = model.predict(fam_df)
         sales_values[sales_values < 0] = 0
-        
+
         current_df['sales'] = sales_values
         current_df = current_df[['id', 'sales']]
 
