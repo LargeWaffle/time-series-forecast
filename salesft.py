@@ -1,9 +1,7 @@
 import numpy as np
 import pandas as pd
-
+from sklearn.decomposition import PCA
 from sklearn.preprocessing import LabelEncoder
-
-from statsmodels.tsa.deterministic import DeterministicProcess, CalendarFourier
 
 
 def assign_time_ft(df):
@@ -26,6 +24,7 @@ def assign_time_ft(df):
 
 
 def handle_na(df):
+    df = df.copy()
     df['transferred'] = df['transferred'].fillna(False).astype(int)
     df['is_holiday'] = df['is_holiday'].fillna(0).astype(int)
 
@@ -56,6 +55,7 @@ def encode_ft(df):
 
 
 def lag_ft(df, lag_infos):
+    df = df.copy()
     for col_name, lags in lag_infos.items():
         for lag in lags:
             df[f'{col_name}_{lag}'] = df[col_name].shift(lag)
@@ -65,6 +65,7 @@ def lag_ft(df, lag_infos):
 
 
 def window_ft(df):
+    df = df.copy()
     times = {'week': 7, '2weeks': 14, 'month': 28}
 
     for key, val in times.items():
@@ -89,7 +90,7 @@ def window_ft(df):
     return df
 
 
-def format_sales(df, data_path):
+def format_sales(df, data_path, separator='family'):
     stores_df = pd.read_csv(data_path + '/stores.csv')
     stores_df = stores_df.rename(columns={'type': 'store_type'})
 
@@ -117,9 +118,8 @@ def format_sales(df, data_path):
         'transactions': [1, 3, 7, 14]
     }
 
-    for family in df['family'].unique():
-
-        sub_df = df.loc[df['family'] == family]
+    for family in df[separator].unique():
+        sub_df = df.loc[df[separator] == family]
 
         sub_df = lag_ft(sub_df, lag_features)
         sub_df = window_ft(sub_df)
@@ -131,22 +131,54 @@ def format_sales(df, data_path):
     return df.set_index('date')
 
 
-def read_sales(data_path, scaler, use_pca=False):
+def read_sales(data_path, ft_infos):
+
+    scaler = ft_infos['ft_scaler']
+    use_pca = ft_infos['use_pca']
+    separator = ft_infos['separator']
+    frag = ft_infos['fragment']
+    drop_cols = ft_infos['dropped']
+
     train_df = pd.read_csv(data_path + '/train.csv', parse_dates=['date'])
     test_df = pd.read_csv(data_path + '/test.csv', parse_dates=['date'])
 
-    train_df = format_sales(train_df, data_path)
+    train_df = format_sales(train_df, data_path, separator=separator)
     scaled = train_df.drop(['id', 'sales'], axis=1)
     train_df[scaled.columns] = scaler.fit_transform(scaled[scaled.columns])
 
-    test_df = format_sales(test_df, data_path)
+    test_df = format_sales(test_df, data_path, separator=separator)
     scaled = test_df.drop(['id'], axis=1)
     test_df[scaled.columns] = scaler.transform(scaled[scaled.columns])
 
-    train_data = {}
-    test_data = {}
-    for idx, famval in enumerate(train_df['family'].unique()):
-        train_data[idx] = train_df.loc[train_df['family'] == famval]
-        test_data[idx] = test_df.loc[test_df['family'] == famval]
+    train_df = train_df.drop(drop_cols, axis=1, errors='ignore')
+    test_df = test_df.drop(drop_cols, axis=1, errors='ignore')
+    feature_names = list(train_df.columns)
 
-    return train_data, test_data
+    if use_pca:
+        #TODO: fix PCA
+        pca = PCA(n_components=0.95)
+        pca_train = train_df.drop([separator], axis=1)
+        pca_test = test_df.drop([separator], axis=1)
+
+        train_df[pca_train.columns] = pca.fit_transform(pca_train[pca_train.columns])
+        test_df[pca_test.columns] = pca.transform(pca_test[pca_test.columns])
+
+        n_pcs = pca.components_.shape[0]
+
+        # get the most important feature on EACH component
+        most_important = [np.abs(pca.components_[i]).argmax() for i in range(n_pcs)]
+        # get the names
+        most_names = [feature_names[most_important[i]] for i in range(n_pcs)]
+        feature_names = ['PC{}_{}'.format(i + 1, most_names[i]) for i in range(n_pcs)]
+
+    if frag:
+        train_data = {}
+        test_data = {}
+
+        for idx, val in enumerate(train_df[separator].unique()):
+            train_data[idx] = train_df.loc[train_df[separator] == val]
+            test_data[idx] = test_df.loc[test_df[separator] == val]
+
+        return train_data, test_data, feature_names
+    else:
+        return train_df, test_df, feature_names
