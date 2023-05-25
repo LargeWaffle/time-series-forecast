@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
-from sklearn.preprocessing import LabelEncoder
+from statsmodels.tsa.deterministic import DeterministicProcess, CalendarFourier
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
 
 def assign_time_ft(df):
@@ -17,10 +18,23 @@ def assign_time_ft(df):
     df.loc[df['weekday'] < 5, 'is_weekday'] = 1
 
     df["season"] = df["month"] % 12 // 3
+    df["school_season"] = df["month"].isin([4, 5, 8, 9])
 
     df['earthquake_rl'] = np.where(df['description'].str.contains('Terremoto Manabi'), 1, 0)
 
     return df
+
+
+def weird():
+    fourier = CalendarFourier(freq='D', order=3)
+    dp = DeterministicProcess(index=y.index,
+                              order=1,
+                              seasonal=False,
+                              constant=False,
+                              additional_terms=[fourier],
+                              drop=True)
+    x = dp.in_sample()
+    x = x.join(calendar)
 
 
 def handle_na(df):
@@ -108,14 +122,16 @@ def format_sales(df, data_path, separator='family'):
 
     df = handle_na(df)
     df.loc[df['transferred'] == 1, 'is_holiday'] = 0
+    df.loc[df['holiday_type'] == 'Bridge', 'is_holiday'] = 1
+    df.loc[df['holiday_type'] == 'Transfer', 'is_holiday'] = 1
 
     df = encode_ft(df)
     df = assign_time_ft(df)
     df = df.drop(['description'], axis=1)
 
     lag_features = {
-        'dcoilwtico': [1, 3, 7, 14],
-        'transactions': [1, 3, 7, 14]
+        'dcoilwtico': [1, 3, 5, 7],
+        'transactions': [1, 3, 5, 7]
     }
 
     for family in df[separator].unique():
@@ -132,7 +148,6 @@ def format_sales(df, data_path, separator='family'):
 
 
 def read_sales(data_path, ft_infos):
-
     scaler = ft_infos['ft_scaler']
     separator = ft_infos['separator']
     frag = ft_infos['fragment']
@@ -144,6 +159,9 @@ def read_sales(data_path, ft_infos):
     train_data = format_sales(train_df, data_path, separator=separator)
     scaled = train_data.drop(['id', 'sales'], axis=1)
     train_data[scaled.columns] = scaler.fit_transform(scaled[scaled.columns])
+
+    df_zeros = train_data.groupby(["store_nbr", "family"]).sales.sum().reset_index()
+    df_zeros = df_zeros[df_zeros.sales == 0]
 
     test_data = format_sales(test_df, data_path, separator=separator)
     scaled = test_data.drop(['id'], axis=1)
@@ -162,4 +180,4 @@ def read_sales(data_path, ft_infos):
         train_data = train_dict
         test_data = test_dict
 
-    return train_data, test_data, feature_names
+    return train_data, test_data, feature_names, df_zeros
