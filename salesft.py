@@ -134,7 +134,6 @@ def format_sales(df, data_path, separator='family'):
 def read_sales(data_path, ft_infos):
 
     scaler = ft_infos['ft_scaler']
-    use_pca = ft_infos['use_pca']
     separator = ft_infos['separator']
     frag = ft_infos['fragment']
     drop_cols = ft_infos['dropped']
@@ -142,43 +141,25 @@ def read_sales(data_path, ft_infos):
     train_df = pd.read_csv(data_path + '/train.csv', parse_dates=['date'])
     test_df = pd.read_csv(data_path + '/test.csv', parse_dates=['date'])
 
-    train_df = format_sales(train_df, data_path, separator=separator)
-    scaled = train_df.drop(['id', 'sales'], axis=1)
-    train_df[scaled.columns] = scaler.fit_transform(scaled[scaled.columns])
+    train_data = format_sales(train_df, data_path, separator=separator)
+    scaled = train_data.drop(['id', 'sales'], axis=1)
+    train_data[scaled.columns] = scaler.fit_transform(scaled[scaled.columns])
 
-    test_df = format_sales(test_df, data_path, separator=separator)
-    scaled = test_df.drop(['id'], axis=1)
-    test_df[scaled.columns] = scaler.transform(scaled[scaled.columns])
+    test_data = format_sales(test_df, data_path, separator=separator)
+    scaled = test_data.drop(['id'], axis=1)
+    test_data[scaled.columns] = scaler.transform(scaled[scaled.columns])
 
-    train_df = train_df.drop(drop_cols, axis=1, errors='ignore')
-    test_df = test_df.drop(drop_cols, axis=1, errors='ignore')
-    feature_names = list(train_df.columns)
-
-    if use_pca:
-        #TODO: fix PCA
-        pca = PCA(n_components=0.95)
-        pca_train = train_df.drop([separator], axis=1)
-        pca_test = test_df.drop([separator], axis=1)
-
-        train_df[pca_train.columns] = pca.fit_transform(pca_train[pca_train.columns])
-        test_df[pca_test.columns] = pca.transform(pca_test[pca_test.columns])
-
-        n_pcs = pca.components_.shape[0]
-
-        # get the most important feature on EACH component
-        most_important = [np.abs(pca.components_[i]).argmax() for i in range(n_pcs)]
-        # get the names
-        most_names = [feature_names[most_important[i]] for i in range(n_pcs)]
-        feature_names = ['PC{}_{}'.format(i + 1, most_names[i]) for i in range(n_pcs)]
+    feature_names = list(filter(lambda i: i not in drop_cols, train_data.columns))
 
     if frag:
-        train_data = {}
-        test_data = {}
+        train_dict = {}
+        test_dict = {}
 
-        for idx, val in enumerate(train_df[separator].unique()):
-            train_data[idx] = train_df.loc[train_df[separator] == val]
-            test_data[idx] = test_df.loc[test_df[separator] == val]
+        for idx, val in enumerate(train_data[separator].unique()):
+            train_dict[idx] = train_data.loc[train_data[separator] == val]
+            test_dict[idx] = test_data.loc[test_data[separator] == val]
 
-        return train_data, test_data, feature_names
-    else:
-        return train_df, test_df, feature_names
+        train_data = train_dict
+        test_data = test_dict
+
+    return train_data, test_data, feature_names
