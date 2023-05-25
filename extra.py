@@ -37,12 +37,23 @@ def create_frag_submission(models_dict, test_df, drop_cols, datapath):
     print("Submission saved!")
 
 
-def show_metrics(y_val, y_pred):
+def show_metrics(y_val, y_pred, mdict):
+    mae = mean_absolute_error(y_val, y_pred)
+    mse = mean_squared_error(y_val, y_pred, squared=True)
+    rmse = mean_squared_error(y_val, y_pred, squared=False)
+    r2 = r2_score(y_val, y_pred)
+
     print("\nRegression metrics")
-    print('MAE: {:.2f}'.format(mean_absolute_error(y_val, y_pred)))
-    print('MSE: {:.2f}'.format(mean_squared_error(y_val, y_pred, squared=True)))
-    print('RMSE: {:.2f}'.format(mean_squared_error(y_val, y_pred, squared=False)))
-    print('R2: {:.2f}'.format(r2_score(y_val, y_pred)))
+    print('MAE: {:.2f}'.format(mae))
+    print('MSE: {:.2f}'.format(mse))
+    print('RMSE: {:.2f}'.format(rmse))
+    print('R2: {:.2f}'.format(r2))
+
+    if mdict is not None:
+        mdict["mae"].append(mae)
+        mdict["mse"].append(mse)
+        mdict["rmse"].append(rmse)
+        mdict["r2"].append(r2)
 
 
 def show_feature_importance(feature_names, ft_val):
